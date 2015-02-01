@@ -1,2 +1,2 @@
 # KWSample
-Sample python scripts
+Sample python(2.7.x) scripts
