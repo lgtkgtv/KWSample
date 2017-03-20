@@ -3,6 +3,7 @@ import subprocess, os, re, sys
 import time
 
 script_name = 'kwgensow4git.py'
+git_history_from = '2005-01-01'
 
 # Run "git log" to get (num_commits) last commits;
 def get_owners_from_git_history(repo_root, since):
@@ -23,7 +24,6 @@ def get_owners_from_git_history(repo_root, since):
         m = re.match("[ACMRT]\t(.+)", line) # Added/Copied/Modified/Renamed/Type changed
         if m:
             path = m.group(1)
-            path = path.replace('/', '\\')
             # only add author if file was not seen before; <= "git log" lists more recent commits first
             if current_author is not None:
                 if not (path in file_owners):
@@ -33,6 +33,16 @@ def get_owners_from_git_history(repo_root, since):
             continue
         m = re.match("[DUXB]\t(.+)", line) # Deleted/Unmerged/X=unknown/Broken - ignore such file changes
         if m:
+            continue
+        m = re.match("R\d+\t(.+)\t(.+)", line) # Rename(Rxxx)
+        if m:
+            path = m.group(2)
+            # only add author if file was not seen before; <= "git log" lists more recent commits first
+            if current_author is not None:
+                if not (path in file_owners):
+                    file_owners[path] = current_author
+            else:
+                print 'Warning: unknown author of a file change:', line
             continue
         m = re.search('>>>(.*)<<<', line) # author email -> username
         if m:
@@ -60,7 +70,7 @@ def list_git_files(repo_root):
     for line in out.splitlines():
         l = line.strip()
         if len(l) > 0:
-            path = l.replace('/', '\\')
+            path = l
             result.append(path)
     return result
 
@@ -85,7 +95,7 @@ def main():
     print '  repository path:', repo_path
     print '  target .sow file:', target_sow
 
-    git_owners = get_owners_from_git_history(repo_path, '2013-01-01')
+    git_owners = get_owners_from_git_history(repo_path, git_history_from)
     print '  loaded', len(git_owners), 'file owners from recent git history'
 
     git_files = list_git_files(repo_path)
@@ -105,6 +115,7 @@ def main():
                 count_git += 1
             else:
                 count_missing +=1
+                print 'no owner is found for ', path
                 continue # do not write
             increment_stat(scm_owner_stats, owner)
             f.write(owner + ';' + path + '\n')
@@ -115,10 +126,6 @@ def main():
     print 'SCM file owner statistics (owner - number of files):'
     for o in sorted(scm_owner_stats.keys()):
         print ' ', o, '-', scm_owner_stats[o]
-    print
-    print 'Applied file owner statistics - after mapping (owner - number of files):'
-    for o in sorted(applied_owner_stats.keys()):
-        print ' ', o, '-', applied_owner_stats[o]
     print
 
     print 'Done;', (time.time() - start_time), 'seconds'
