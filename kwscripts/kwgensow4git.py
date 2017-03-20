@@ -7,7 +7,7 @@ script_name = 'kwgensow4git.py'
 # Run "git log" to get (num_commits) last commits;
 def get_owners_from_git_history(repo_root, since):
     cmd = ('git', 'log', '--since=' + since, '--name-status', '--pretty=format:%h >>>%ae<<<')
-    print '===', cmd
+    #print 'git log command is: ', cmd
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=repo_root)
     out, err = p.communicate()
     if p.returncode != 0:
