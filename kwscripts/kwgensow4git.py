@@ -25,11 +25,7 @@ def get_owners_from_git_history(repo_root, since):
         if m:
             path = m.group(1)
             # only add author if file was not seen before; <= "git log" lists more recent commits first
-            if current_author is not None:
-                if not (path in file_owners):
-                    file_owners[path] = current_author
-            else:
-                print 'Warning: unknown author of a file change:', line
+            add_owner_to_path(current_author, file_owners, path, line)
             continue
         m = re.match("[DUXB]\t(.+)", line) # Deleted/Unmerged/X=unknown/Broken - ignore such file changes
         if m:
@@ -38,11 +34,7 @@ def get_owners_from_git_history(repo_root, since):
         if m:
             path = m.group(2)
             # only add author if file was not seen before; <= "git log" lists more recent commits first
-            if current_author is not None:
-                if not (path in file_owners):
-                    file_owners[path] = current_author
-            else:
-                print 'Warning: unknown author of a file change:', line
+            add_owner_to_path(current_author, file_owners, path, line)
             continue
         m = re.search('>>>(.*)<<<', line) # author email -> username
         if m:
@@ -54,6 +46,14 @@ def get_owners_from_git_history(repo_root, since):
             continue
         print 'Warning: unexpected "git log" line:', line
     return file_owners
+
+def add_owner_to_path(owner, file_owners, path, line):
+    if owner is not None:
+        if not (path in file_owners):
+            file_owners[path] = owner
+        else:
+            print 'Warning: unknown author of a file change:', line
+
 
 # Get list of files under source control (used to filter out old files from .sow)
 def list_git_files(repo_root):
